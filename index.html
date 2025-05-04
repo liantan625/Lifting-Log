@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Lift Log</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>My Lift Log</h1>
+
+    <form id="log-form">
+      <!-- Date defaults to today -->
+      <input id="date" type="date" required />
+
+      <!-- Exercise dropdown + “Add New” -->
+      <div class="exercise-row">
+        <select id="exercise" required></select>
+        <button type="button" id="add-exercise">＋ Add Exercise</button>
+      </div>
+
+      <input id="weight" type="number" placeholder="Weight (kg)" required />
+      <input id="reps"   type="number" placeholder="Reps"       required />
+      <!-- New note field -->
+      <input id="note"   type="text" placeholder="Note (optional)" />
+
+      <button type="submit" id="add-entry">Add Entry</button>
+    </form>
+
+    <!-- Export CSV button -->
+    <button id="export-csv">Export to CSV</button>
+
+    <table id="log-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Exercise</th>
+          <th>Weight</th>
+          <th>Reps</th>
+          <th>Note</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="clear-all">Clear All</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
