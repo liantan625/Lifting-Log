@@ -6,6 +6,7 @@ const form            = document.getElementById('log-form');
 const tbody           = document.querySelector('#log-table tbody');
 const clearAllBtn     = document.getElementById('clear-all');
 const exportCsvBtn    = document.getElementById('export-csv');
+const tipBtn          = document.getElementById('tip-btn');
 
 const STORAGE_KEY     = 'myLiftLog';
 const EX_KEY          = 'myLiftExercises';
@@ -14,7 +15,7 @@ const EX_KEY          = 'myLiftExercises';
 let entries   = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let exercises = JSON.parse(localStorage.getItem(EX_KEY)      || '[]');
 
-// default set of exercises
+// Default exercises
 const defaultExercises = [
   'Barbell press','Pulldown','Squat','Dumbbell side raise','Face pull','Triceps pushdown','Grip',
   'Bench press','Deadlift','Biceps curl','Single leg standing calf','Crunch','Side bend'
@@ -22,28 +23,35 @@ const defaultExercises = [
 
 // --- ON LOAD ---
 window.addEventListener('DOMContentLoaded', () => {
+  // 1. Set date to today
   dateInput.value = new Date().toISOString().slice(0,10);
 
+  // 2. Initialize exercises list
   if (!exercises.length) {
     exercises = defaultExercises.slice();
     localStorage.setItem(EX_KEY, JSON.stringify(exercises));
   }
   populateExercises();
+
+  // 3. Render existing entries
   render();
 });
 
-// populate dropdown
+// Populate the <select> with exercises
 function populateExercises() {
   exerciseSelect.innerHTML = exercises
     .map(ex => `<option value="${ex}">${ex}</option>`)
     .join('');
 }
 
+// Save entries array back to localStorage
 function saveEntries() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
-// add new exercise
+// --- EVENT LISTENERS ---
+
+// Add a new custom exercise
 addExerciseBtn.addEventListener('click', () => {
   const name = prompt('Enter new exercise name:').trim();
   if (name && !exercises.includes(name)) {
@@ -54,7 +62,7 @@ addExerciseBtn.addEventListener('click', () => {
   }
 });
 
-// submit new lift
+// On form submit, add a new log entry
 form.addEventListener('submit', e => {
   e.preventDefault();
   const entry = {
@@ -72,7 +80,7 @@ form.addEventListener('submit', e => {
   dateInput.value = new Date().toISOString().slice(0,10);
 });
 
-// clear all
+// Clear all entries
 clearAllBtn.addEventListener('click', () => {
   if (!entries.length) return;
   if (confirm('Erase all entries?')) {
@@ -82,7 +90,7 @@ clearAllBtn.addEventListener('click', () => {
   }
 });
 
-// export to CSV
+// Export log to CSV
 exportCsvBtn.addEventListener('click', () => {
   if (!entries.length) {
     alert('No entries to export.');
@@ -90,7 +98,7 @@ exportCsvBtn.addEventListener('click', () => {
   }
   const header = ['Date','Exercise','Weight (kg)','Reps','Note'];
   const rows = entries.map(e =>
-    [e.date,e.exercise,e.weight,e.reps,e.note]
+    [e.date, e.exercise, e.weight, e.reps, e.note]
       .map(val => `"${val}"`).join(',')
   );
   const csv = [header.join(','), ...rows].join('\r\n');
@@ -105,7 +113,12 @@ exportCsvBtn.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-// delete entry
+// “Tip Me” button
+tipBtn.addEventListener('click', () => {
+  window.location.href = 'https://buy.stripe.com/7sI9BB8OY2rh5ZCbII';
+});
+
+// Delete a single entry
 tbody.addEventListener('click', e => {
   if (!e.target.matches('.delete')) return;
   const id = +e.target.dataset.id;
@@ -114,7 +127,7 @@ tbody.addEventListener('click', e => {
   render();
 });
 
-// render table
+// Render the table rows
 function render() {
   tbody.innerHTML = entries.map(({id,date,exercise,weight,reps,note}) => `
     <tr>
@@ -127,9 +140,3 @@ function render() {
     </tr>
   `).join('');
 }
-// — Tip Me redirect —
-document.getElementById('tip-btn')
-  .addEventListener('click', () => {
-    // replace with your actual Stripe link
-    window.location.href = 'https://buy.stripe.com/7sI9BB8OY2rh5ZCbII';
-  });

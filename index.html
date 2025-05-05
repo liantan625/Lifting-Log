@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Lifting Log by Skudai Ah Lian</title>
+  <title>My Lift Log</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -21,21 +21,13 @@
 
       <input id="weight" type="number" placeholder="Weight (kg)" required />
       <input id="reps"   type="number" placeholder="Reps"       required />
-      <!-- New note field -->
-      <input id="note"   type="text" placeholder="Note (optional)" />
+      <input id="note"   type="text"   placeholder="Note (optional)" />
 
       <button type="submit" id="add-entry">Add Entry</button>
     </form>
 
-    <!-- Export CSV button -->
     <button id="export-csv">Export to CSV</button>
-
-      <!-- Payment button -->
-  <button id="tip-btn" class="tip-btn">💖 Tip Me</button>
-
-</div>  <!-- end .card -->
-
-<script src="app.js"></script>
+    <button id="tip-btn" class="tip-btn">💖 Tip Me</button>
 
     <table id="log-table">
       <thead>
