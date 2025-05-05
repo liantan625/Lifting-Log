@@ -111,3 +111,19 @@ body {
   #clear-all:hover {
     background: #9b2c2c;
   }
+  /* Tip Me button */
+.tip-btn {
+  width: 100%;
+  padding: .75rem;
+  font-size: 1rem;
+  color: #fff;
+  background: #635bff;        /* Stripe’s purple—feel free to pick another */
+  border: none;
+  border-radius: .5rem;
+  cursor: pointer;
+  transition: background .2s;
+  margin-bottom: .75rem;      /* space below */
+}
+.tip-btn:hover {
+  background: #5246d8;
+}

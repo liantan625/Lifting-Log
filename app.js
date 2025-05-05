@@ -127,3 +127,9 @@ function render() {
     </tr>
   `).join('');
 }
+// — Tip Me redirect —
+document.getElementById('tip-btn')
+  .addEventListener('click', () => {
+    // replace with your actual Stripe link
+    window.location.href = 'https://buy.stripe.com/7sI9BB8OY2rh5ZCbII';
+  });
