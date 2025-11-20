@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { 
-  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, writeBatch 
+import {
+  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, writeBatch
 } from "firebase/firestore";
 
 // ======================================
@@ -27,20 +27,20 @@ const db = getFirestore(app);
 // ======================================
 
 // --- ELEMENT REFS ---
-const dateInput       = document.getElementById('date');
-const exerciseSelect  = document.getElementById('exercise');
-const addExerciseBtn  = document.getElementById('add-exercise');
-const form            = document.getElementById('log-form');
-const tbody           = document.querySelector('#log-table tbody');
-const clearAllBtn     = document.getElementById('clear-all');
-const exportCsvBtn    = document.getElementById('export-csv');
-const tipBtn          = document.getElementById('tip-btn');
+const dateInput = document.getElementById('date');
+const exerciseSelect = document.getElementById('exercise');
+const addExerciseBtn = document.getElementById('add-exercise');
+const form = document.getElementById('log-form');
+const tbody = document.querySelector('#log-table tbody');
+const clearAllBtn = document.getElementById('clear-all');
+const exportCsvBtn = document.getElementById('export-csv');
+const tipBtn = document.getElementById('tip-btn');
 
-const EX_KEY          = 'myLiftExercises';
+const EX_KEY = 'myLiftExercises';
 const COLLECTION_NAME = 'workouts'; // Firestore collection
 
 // --- INITIAL DATA ---
-let entries   = [];
+let entries = [];
 let exercises = JSON.parse(localStorage.getItem(EX_KEY) || '[]');
 
 // Default exercises
@@ -62,7 +62,9 @@ const defaultExercises = [
   'Grip',
   'Biceps curl',
   'Single leg standing calf',
-  'Crunch'
+  'Crunch',
+  'Bench press',
+  'Dumbbell side raise'
 ];
 
 // =============================
@@ -141,7 +143,7 @@ async function clearAllWorkouts() {
 // =================
 window.addEventListener('DOMContentLoaded', () => {
   // 1. Set date to today
-  dateInput.value = new Date().toISOString().slice(0,10);
+  dateInput.value = new Date().toISOString().slice(0, 10);
 
   // 2. Initialize exercises list (still using localStorage for exercises)
   if (!exercises.length) {
@@ -191,19 +193,19 @@ addExerciseBtn.addEventListener('click', () => {
 // On form submit, add a new log entry to Firestore
 form.addEventListener('submit', async e => {
   e.preventDefault();
-  
+
   const workoutData = {
-    date:     dateInput.value,
+    date: dateInput.value,
     exercise: exerciseSelect.value,
-    weight:   +document.getElementById('weight').value,
-    reps:     +document.getElementById('reps').value,
-    note:     document.getElementById('note').value.trim()
+    weight: +document.getElementById('weight').value,
+    reps: +document.getElementById('reps').value,
+    note: document.getElementById('note').value.trim()
   };
-  
+
   await addWorkout(workoutData);
-  
+
   form.reset();
-  dateInput.value = new Date().toISOString().slice(0,10);
+  dateInput.value = new Date().toISOString().slice(0, 10);
 });
 
 // Clear all entries (asks for confirmation, then deletes all Firestore docs)
@@ -220,17 +222,17 @@ exportCsvBtn.addEventListener('click', () => {
     alert('No entries to export.');
     return;
   }
-  const header = ['Date','Exercise','Weight (kg)','Reps','Note'];
+  const header = ['Date', 'Exercise', 'Weight (kg)', 'Reps', 'Note'];
   const rows = entries.map(e =>
     [e.date, e.exercise, e.weight, e.reps, e.note]
       .map(val => `"${val}"`).join(',')
   );
   const csv = [header.join(','), ...rows].join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href       = url;
-  a.download   = 'lift-log.csv';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'lift-log.csv';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
