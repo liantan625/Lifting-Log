@@ -15,6 +15,7 @@ body {
   border-radius: 1rem;
   box-shadow: 0 8px 20px rgba(0,0,0,.08);
   width: 360px;
+  max-width: 90%; /* Ensure card doesn't overflow on small screens */
 }
 
 h1 {
@@ -140,4 +141,40 @@ th, td {
 }
 #clear-all:hover {
   background: #9b2c2c;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  body {
+    align-items: flex-start; /* Align to top on mobile */
+    padding-top: 1rem;
+  }
+
+  .card {
+    width: 100%;
+    border-radius: 0; /* Remove border radius for full width feel or keep it small */
+    box-shadow: none; /* Simplify on mobile */
+    padding: 1rem;
+  }
+
+  .exercise-row {
+    flex-direction: column;
+  }
+  
+  .exercise-row button {
+    width: 100%;
+  }
+
+  /* Make table scrollable if it overflows */
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  /* Alternatively, stack table cells or hide less important ones if needed. 
+     For now, simple horizontal scroll is often enough for data tables. 
+     Or we can reduce padding. */
+  th, td {
+    padding: .25rem;
+    font-size: 0.9rem;
+  }
 }

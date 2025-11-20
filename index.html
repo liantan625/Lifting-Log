@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>My Lift Log</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="card">
     <h1>My Lift Log</h1>
@@ -20,8 +23,8 @@
       </div>
 
       <input id="weight" type="number" placeholder="Weight (kg)" required />
-      <input id="reps"   type="number" placeholder="Reps"       required />
-      <input id="note"   type="text"   placeholder="Note (optional)" />
+      <input id="reps" type="number" placeholder="Reps" required />
+      <input id="note" type="text" placeholder="Note (optional)" />
 
       <button type="submit" id="add-entry">Add Entry</button>
     </form>
@@ -29,23 +32,26 @@
     <button id="export-csv">Export to CSV</button>
     <button id="tip-btn" class="tip-btn">💖 Tip Me</button>
 
-    <table id="log-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Exercise</th>
-          <th>Weight</th>
-          <th>Reps</th>
-          <th>Note</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div class="table-container">
+      <table id="log-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Exercise</th>
+            <th>Weight</th>
+            <th>Reps</th>
+            <th>Note</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
     <button id="clear-all">Clear All</button>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
+
 </html>
