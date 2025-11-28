@@ -9,48 +9,99 @@
 </head>
 
 <body>
-  <div class="card">
-    <h1>My Lift Log</h1>
-
-    <form id="log-form">
-      <!-- Date defaults to today -->
-      <input id="date" type="date" required />
-
-      <!-- Exercise dropdown + “Add New” -->
-      <div class="exercise-row">
-        <select id="exercise" required></select>
-        <button type="button" id="add-exercise">＋ Add Exercise</button>
-      </div>
-
-      <input id="weight" type="number" placeholder="Weight (kg)" required />
-      <input id="reps" type="number" placeholder="Reps" required />
-      <input id="note" type="text" placeholder="Note (optional)" />
-
-      <button type="submit" id="add-entry">Add Entry</button>
+  <!-- AUTH CONTAINER -->
+  <div id="auth-container" class="card">
+    <h1 id="auth-title">Login</h1>
+    <form id="auth-form">
+      <input type="email" id="auth-email" placeholder="Email" required />
+      <input type="password" id="auth-password" placeholder="Password" required />
+      <button type="submit" id="auth-submit">Login</button>
     </form>
-
-    <button id="export-csv">Export to CSV</button>
-    <button id="tip-btn" class="tip-btn">💖 Tip Me</button>
-
-    <div class="table-container">
-      <table id="log-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Exercise</th>
-            <th>Weight</th>
-            <th>Reps</th>
-            <th>Note</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <button id="clear-all">Clear All</button>
+    <p id="auth-switch-text">
+      Don't have an account? <span id="auth-switch-btn" class="link-btn">Sign Up</span>
+    </p>
   </div>
 
+  <!-- MAIN APP CONTAINER (Initially Hidden) -->
+  <div id="app-container" class="card hidden">
+    <div class="header-row">
+      <h1>Lifting Tracker</h1>
+      <button id="logout-btn" class="logout-btn">Log Out</button>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button id="tab-log" class="tab active">Log Entry</button>
+      <button id="tab-analytics" class="tab">History & Analytics</button>
+    </div>
+
+    <!-- VIEW: LOG ENTRY -->
+    <div id="view-log">
+      <form id="log-form">
+        <!-- Date defaults to today -->
+        <input id="date" type="date" required />
+
+        <!-- Exercise dropdown + “Add New” -->
+        <div class="exercise-row">
+          <select id="exercise" required></select>
+          <button type="button" id="add-exercise">＋ Add Exercise</button>
+        </div>
+
+        <input id="weight" type="float" placeholder="Weight (kg)" required />
+        <input id="reps" type="number" placeholder="Reps" required />
+        <input id="note" type="text" placeholder="Note (optional)" />
+
+        <div class="form-actions">
+          <button type="submit" id="add-entry">Add Entry</button>
+          <button type="button" id="cancel-edit" class="hidden" style="background-color: #94a3b8;">Cancel</button>
+        </div>
+      </form>
+
+      <button id="tip-btn" class="tip-btn">💖 Tip Me</button>
+    </div>
+
+    <!-- VIEW: ANALYTICS & HISTORY -->
+    <div id="view-analytics" class="hidden">
+      <!-- Stats Card -->
+      <div class="stats-card">
+        <h3>Last Workout</h3>
+        <p id="last-workout-text">No data yet</p>
+      </div>
+
+      <!-- Chart Section -->
+      <div class="chart-section">
+        <h3>Progress Chart</h3>
+        <select id="chart-exercise-select"></select>
+        <div class="chart-container">
+          <canvas id="progress-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- History Table -->
+      <h3>History</h3>
+      <button id="export-csv">Export to CSV</button>
+
+      <div class="table-container">
+        <table id="log-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Exercise</th>
+              <th>Weight</th>
+              <th>Reps</th>
+              <th>Note</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <button id="clear-all">Clear All</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 

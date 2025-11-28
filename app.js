@@ -1,7 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {
-  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, writeBatch
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "firebase/auth";
+import {
+  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, writeBatch, updateDoc
 } from "firebase/firestore";
 
 // ======================================
@@ -23,10 +30,36 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 // ======================================
 
 // --- ELEMENT REFS ---
+// Auth Elements
+const authContainer = document.getElementById('auth-container');
+const appContainer = document.getElementById('app-container');
+const authTitle = document.getElementById('auth-title');
+const authForm = document.getElementById('auth-form');
+const authEmail = document.getElementById('auth-email');
+const authPassword = document.getElementById('auth-password');
+const authSubmit = document.getElementById('auth-submit');
+const authSwitchText = document.getElementById('auth-switch-text');
+const authSwitchBtn = document.getElementById('auth-switch-btn');
+const logoutBtn = document.getElementById('logout-btn');
+
+// Tabs & Views
+const tabLog = document.getElementById('tab-log');
+const tabAnalytics = document.getElementById('tab-analytics');
+const viewLog = document.getElementById('view-log');
+const viewAnalytics = document.getElementById('view-analytics');
+
+// Analytics Elements
+const lastWorkoutText = document.getElementById('last-workout-text');
+const chartExerciseSelect = document.getElementById('chart-exercise-select');
+const ctx = document.getElementById('progress-chart').getContext('2d');
+let chartInstance = null;
+
+// App Elements
 const dateInput = document.getElementById('date');
 const exerciseSelect = document.getElementById('exercise');
 const addExerciseBtn = document.getElementById('add-exercise');
@@ -35,9 +68,13 @@ const tbody = document.querySelector('#log-table tbody');
 const clearAllBtn = document.getElementById('clear-all');
 const exportCsvBtn = document.getElementById('export-csv');
 const tipBtn = document.getElementById('tip-btn');
+const addEntryBtn = document.getElementById('add-entry');
+const cancelEditBtn = document.getElementById('cancel-edit');
 
 const EX_KEY = 'myLiftExercises';
-const COLLECTION_NAME = 'workouts'; // Firestore collection
+// COLLECTION_NAME will be dynamic based on user
+let currentUser = null;
+let editingId = null; // Track which ID is being edited
 
 // --- INITIAL DATA ---
 let entries = [];
@@ -68,30 +105,105 @@ const defaultExercises = [
 ];
 
 // =============================
-// 2) FIRESTORE-BASED API FUNCTIONS
+// 2) AUTHENTICATION LOGIC
 // =============================
+
+let isLoginMode = true;
+
+authSwitchBtn.addEventListener('click', () => {
+  isLoginMode = !isLoginMode;
+  if (isLoginMode) {
+    authTitle.textContent = 'Login';
+    authSubmit.textContent = 'Login';
+    authSwitchText.innerHTML = 'Don\'t have an account? <span id="auth-switch-btn" class="link-btn">Sign Up</span>';
+  } else {
+    authTitle.textContent = 'Sign Up';
+    authSubmit.textContent = 'Sign Up';
+    authSwitchText.innerHTML = 'Already have an account? <span id="auth-switch-btn" class="link-btn">Login</span>';
+  }
+  // Re-attach listener to the new span
+  document.getElementById('auth-switch-btn').addEventListener('click', () => authSwitchBtn.click());
+});
+
+authForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = authEmail.value;
+  const password = authPassword.value;
+
+  try {
+    if (isLoginMode) {
+      await signInWithEmailAndPassword(auth, email, password);
+    } else {
+      await createUserWithEmailAndPassword(auth, email, password);
+    }
+  } catch (error) {
+    console.error("Auth Error:", error);
+    alert(error.message);
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Logout Error:", error);
+  }
+});
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is signed in
+    currentUser = user;
+    authContainer.classList.add('hidden');
+    appContainer.classList.remove('hidden');
+    fetchWorkouts(); // Load data for this user
+  } else {
+    // User is signed out
+    currentUser = null;
+    entries = []; // Clear local data
+    render();
+    authContainer.classList.remove('hidden');
+    appContainer.classList.add('hidden');
+    authForm.reset();
+  }
+});
+
+
+// =============================
+// 3) FIRESTORE-BASED API FUNCTIONS
+// =============================
+
+function getUserCollection() {
+  if (!currentUser) throw new Error("No user logged in");
+  return collection(db, `users/${currentUser.uid}/workouts`);
+}
 
 // Fetch all workouts from Firestore
 async function fetchWorkouts() {
+  if (!currentUser) return;
   try {
-    const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+    const querySnapshot = await getDocs(getUserCollection());
     // Map each document into your `entries` array, including its Firestore ID as `_id`
     entries = querySnapshot.docs.map(doc => ({
       _id: doc.id,
       ...doc.data()
     }));
+    // Sort by date descending (optional but good)
+    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
     render();
+    updateAnalytics(); // Update stats/charts when data loads
   } catch (error) {
     console.error('Error fetching workouts from Firestore:', error);
-    alert('Failed to load workouts. Make sure your Firebase setup is correct!');
+    alert('Failed to load workouts.');
   }
 }
 
 // Add a new workout to Firestore
 async function addWorkout(workoutData) {
+  if (!currentUser) return;
   try {
     // Firestore addDoc returns a DocumentReference
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), workoutData);
+    const docRef = await addDoc(getUserCollection(), workoutData);
 
     // We can immediately push a local copy into `entries` (with the new ID)
     const newWorkout = {
@@ -99,20 +211,48 @@ async function addWorkout(workoutData) {
       ...workoutData
     };
     entries.unshift(newWorkout);
+    // Sort again
+    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
     render();
+    updateAnalytics(); // Update stats/charts
   } catch (error) {
     console.error('Error adding workout to Firestore:', error);
     alert('Failed to save workout. Please try again!');
   }
 }
 
+// Update an existing workout in Firestore
+async function updateWorkout(id, workoutData) {
+  if (!currentUser) return;
+  try {
+    const docRef = doc(db, `users/${currentUser.uid}/workouts`, id);
+    await updateDoc(docRef, workoutData);
+
+    // Update local entry
+    const index = entries.findIndex(e => e._id === id);
+    if (index !== -1) {
+      entries[index] = { _id: id, ...workoutData };
+      // Sort again
+      entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+      render();
+      updateAnalytics();
+    }
+  } catch (error) {
+    console.error('Error updating workout:', error);
+    alert('Failed to update workout.');
+  }
+}
+
 // Delete a single workout by Firestore document ID
 async function deleteWorkout(id) {
+  if (!currentUser) return;
   try {
-    await deleteDoc(doc(db, COLLECTION_NAME, id));
+    await deleteDoc(doc(db, `users/${currentUser.uid}/workouts`, id));
     // Remove it locally as well
     entries = entries.filter(entry => entry._id !== id);
     render();
+    updateAnalytics(); // Update stats/charts
   } catch (error) {
     console.error('Error deleting workout from Firestore:', error);
     alert('Failed to delete workout. Please try again!');
@@ -121,8 +261,9 @@ async function deleteWorkout(id) {
 
 // Clear all workouts: delete every document in the "workouts" collection
 async function clearAllWorkouts() {
+  if (!currentUser) return;
   try {
-    const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+    const querySnapshot = await getDocs(getUserCollection());
     // Batch‐delete or loop through each doc
     const batch = writeBatch(db);
     querySnapshot.docs.forEach(doc => {
@@ -132,6 +273,7 @@ async function clearAllWorkouts() {
 
     entries = [];
     render();
+    updateAnalytics();
   } catch (error) {
     console.error('Error clearing workouts from Firestore:', error);
     alert('Failed to clear workouts. Please try again!');
@@ -139,7 +281,7 @@ async function clearAllWorkouts() {
 }
 
 // =================
-// 3) ON LOAD SETUP
+// 4) ON LOAD SETUP
 // =================
 window.addEventListener('DOMContentLoaded', () => {
   // 1. Set date to today
@@ -164,20 +306,43 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   populateExercises();
 
-  // 3. Load workouts from Firestore
-  fetchWorkouts();
+  // 3. Load workouts from Firestore -> Moved to onAuthStateChanged
 });
 
 // Populate the <select> with exercises
 function populateExercises() {
-  exerciseSelect.innerHTML = exercises
+  const options = exercises
     .map(ex => `<option value="${ex}">${ex}</option>`)
     .join('');
+
+  exerciseSelect.innerHTML = options;
+  chartExerciseSelect.innerHTML = options; // Populate chart select too
 }
 
 // ================
-// 4) EVENT LISTENERS
+// 5) EVENT LISTENERS
 // ================
+
+// Tabs
+tabLog.addEventListener('click', () => {
+  tabLog.classList.add('active');
+  tabAnalytics.classList.remove('active');
+  viewLog.classList.remove('hidden');
+  viewAnalytics.classList.add('hidden');
+});
+
+tabAnalytics.addEventListener('click', () => {
+  tabAnalytics.classList.add('active');
+  tabLog.classList.remove('active');
+  viewAnalytics.classList.remove('hidden');
+  viewLog.classList.add('hidden');
+  updateAnalytics(); // Refresh chart when switching tab
+});
+
+// Chart Exercise Change
+chartExerciseSelect.addEventListener('change', () => {
+  renderChart();
+});
 
 // Add a new custom exercise (still using localStorage)
 addExerciseBtn.addEventListener('click', () => {
@@ -202,11 +367,52 @@ form.addEventListener('submit', async e => {
     note: document.getElementById('note').value.trim()
   };
 
-  await addWorkout(workoutData);
+  if (editingId) {
+    // Update existing
+    await updateWorkout(editingId, workoutData);
+    alert('Workout updated!');
+    cancelEdit(); // Reset form state
+  } else {
+    // Add new
+    await addWorkout(workoutData);
+    alert('Workout added!');
+    form.reset();
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+});
 
+// Cancel Edit
+cancelEditBtn.addEventListener('click', cancelEdit);
+
+function cancelEdit() {
+  editingId = null;
   form.reset();
   dateInput.value = new Date().toISOString().slice(0, 10);
-});
+  addEntryBtn.textContent = 'Add Entry';
+  cancelEditBtn.classList.add('hidden');
+}
+
+// Start Edit
+function startEdit(id) {
+  const entry = entries.find(e => e._id === id);
+  if (!entry) return;
+
+  editingId = id;
+
+  // Populate form
+  dateInput.value = entry.date;
+  exerciseSelect.value = entry.exercise;
+  document.getElementById('weight').value = entry.weight;
+  document.getElementById('reps').value = entry.reps;
+  document.getElementById('note').value = entry.note;
+
+  // Change UI to Edit Mode
+  addEntryBtn.textContent = 'Update Entry';
+  cancelEditBtn.classList.remove('hidden');
+
+  // Switch to Log Tab
+  tabLog.click();
+}
 
 // Clear all entries (asks for confirmation, then deletes all Firestore docs)
 clearAllBtn.addEventListener('click', async () => {
@@ -246,13 +452,18 @@ tipBtn.addEventListener('click', () => {
 
 // Delete a single entry (clicking the “✕” button in the table)
 tbody.addEventListener('click', async e => {
-  if (!e.target.matches('.delete')) return;
   const id = e.target.dataset.id;
-  await deleteWorkout(id);
+  if (e.target.matches('.delete')) {
+    if (confirm('Delete this entry?')) {
+      await deleteWorkout(id);
+    }
+  } else if (e.target.matches('.edit-btn')) {
+    startEdit(id);
+  }
 });
 
 // ================
-// 5) RENDER FUNCTION
+// 6) RENDER FUNCTION
 // ================
 function render() {
   tbody.innerHTML = entries.map(entry => {
@@ -264,8 +475,87 @@ function render() {
         <td>${entry.weight} kg</td>
         <td>${entry.reps}</td>
         <td>${entry.note}</td>
-        <td><button class="delete" data-id="${id}">✕</button></td>
+        <td>
+          <button class="edit-btn" data-id="${id}">✎</button>
+          <button class="delete" data-id="${id}">✕</button>
+        </td>
       </tr>
     `;
   }).join('');
+}
+
+// ================
+// 7) ANALYTICS FUNCTIONS
+// ================
+
+function updateAnalytics() {
+  updateLastWorkoutStats();
+  renderChart();
+}
+
+function updateLastWorkoutStats() {
+  if (entries.length === 0) {
+    lastWorkoutText.textContent = "No data yet";
+    return;
+  }
+
+  // entries is already sorted by date desc
+  const lastDate = new Date(entries[0].date);
+  const today = new Date();
+
+  // Reset time part for accurate day calculation
+  lastDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = Math.abs(today - lastDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    lastWorkoutText.textContent = "Today";
+  } else if (diffDays === 1) {
+    lastWorkoutText.textContent = "Yesterday";
+  } else {
+    lastWorkoutText.textContent = `${diffDays} days ago`;
+  }
+}
+
+function renderChart() {
+  const selectedExercise = chartExerciseSelect.value;
+
+  // Filter entries for this exercise
+  // Sort ascending for chart (oldest to newest)
+  const exerciseData = entries
+    .filter(e => e.exercise === selectedExercise)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const labels = exerciseData.map(e => e.date);
+  const dataPoints = exerciseData.map(e => e.weight);
+
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: `${selectedExercise} Weight (kg)`,
+        data: dataPoints,
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: false
+        }
+      }
+    }
+  });
 }

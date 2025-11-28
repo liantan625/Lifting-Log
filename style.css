@@ -1,180 +1,312 @@
-/* Base page styles */
+/* Existing Styles */
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #1e293b;
+  --border: #e2e8f0;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+}
+
 body {
-  font-family: system-ui, sans-serif;
-  background: #f2f2f2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
   margin: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
 }
 
 .card {
-  background: #fff;
+  margin-top: 15%;
+  background: var(--card-bg);
   padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 8px 20px rgba(0,0,0,.08);
-  width: 360px;
-  max-width: 90%; /* Ensure card doesn't overflow on small screens */
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  width: 100%;
+  max-width: 600px;
 }
 
 h1 {
-  margin-top: 0;
+  text-align: center;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
 }
 
-/* Ensure all form controls have white backgrounds */
-form input,
-form select,
-form button,
-#export-csv,
-#clear-all,
-.tip-btn {
-  background: #fff;
-}
-
-/* Form layout */
 form {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: .75rem;
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* Exercise + Add button on one row */
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-actions button {
+  flex: 1;
+}
+
+input,
+select,
+button {
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid var(--primary);
+  border-color: transparent;
+}
+
+button {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Exercise Row */
 .exercise-row {
   display: flex;
-  gap: .5rem;
+  gap: 0.5rem;
 }
+
 .exercise-row select {
   flex: 1;
 }
+
 .exercise-row button {
-  padding: .5rem;
-  border: 1px solid #ddd;
-  border-radius: .5rem;
-  cursor: pointer;
-  transition: background .2s;
+  white-space: nowrap;
+  background-color: #10b981;
 }
+
 .exercise-row button:hover {
-  background: #f0f0f0;
+  background-color: #059669;
 }
 
-/* Text inputs and selects */
-form input,
-form select {
-  padding: .75rem;
-  font-size: .9rem;
-  border: 1px solid #ddd;
-  border-radius: .5rem;
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .exercise-row {
+    flex-wrap: wrap;
+  }
+
+  .exercise-row select {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .exercise-row button {
+    width: 100%;
+    flex: 1 1 100%;
+  }
 }
 
-/* Main “Add Entry” button */
-#add-entry {
-  border: none;
-  padding: .75rem;
-  font-size: 1rem;
-  color: #fff;
-  background: #007bff;
-  cursor: pointer;
-  border-radius: .5rem;
-  transition: background .2s;
-}
-#add-entry:hover {
-  background: #0056c7;
+/* Table */
+.table-container {
+  margin-top: 2rem;
+  overflow-x: auto;
 }
 
-/* Export CSV button (auto-width) */
-#export-csv {
-  display: inline-block;
-  padding: .5rem;
-  border: 1px solid #ddd;
-  border-radius: .5rem;
-  cursor: pointer;
-  margin-bottom: 1rem;
-}
-#export-csv:hover {
-  background: #f0f0f0;
-}
-
-/* Tip Me button – now auto-width to match Export CSV */
-.tip-btn {
-  display: inline-block;    /* shrink to content + padding */
-  padding: .5rem;           /* same as Export CSV */
-  font-size: 1rem;
-  color: #fff;
-  background: #635bff;
-  border: none;
-  border-radius: .5rem;
-  cursor: pointer;
-  transition: background .2s;
-  margin: 0 auto 1rem;      /* center + bottom spacing */
-  text-align: center;
-  text-decoration: none;
-}
-.tip-btn:hover {
-  background: #5246d8;
-}
-
-/* Table styling and spacing */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0 1.5rem;
 }
-th, td {
-  padding: .5rem;
+
+th,
+td {
+  padding: 0.75rem;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
 }
 
-/* Clear All button */
+th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+
+/* Delete Button */
+.delete {
+  background-color: transparent;
+  color: var(--danger);
+  padding: 0.25rem 0.5rem;
+  font-size: 1.2rem;
+}
+
+.delete:hover {
+  background-color: #fee2e2;
+  color: var(--danger-hover);
+}
+
+/* Edit Button */
+.edit-btn {
+  background-color: transparent;
+  color: #3b82f6;
+  /* Blue */
+  padding: 0.25rem 0.5rem;
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+}
+
+.edit-btn:hover {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+/* Clear All Button */
 #clear-all {
+  margin-top: 1rem;
+  background-color: var(--danger);
   width: 100%;
-  padding: .75rem;
-  font-size: 1rem;
-  color: #fff;
-  background: #e53e3e;
-  border: none;
-  border-radius: .5rem;
-  cursor: pointer;
-  transition: background .2s;
 }
+
 #clear-all:hover {
-  background: #9b2c2c;
+  background-color: var(--danger-hover);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 600px) {
-  body {
-    align-items: flex-start; /* Align to top on mobile */
-    padding-top: 1rem;
-  }
+/* Export Button */
+#export-csv {
+  margin-top: 1rem;
+  background-color: #3b82f6;
+  width: 100%;
+}
 
-  .card {
-    width: 100%;
-    border-radius: 0; /* Remove border radius for full width feel or keep it small */
-    box-shadow: none; /* Simplify on mobile */
-    padding: 1rem;
-  }
+#export-csv:hover {
+  background-color: #2563eb;
+}
 
-  .exercise-row {
-    flex-direction: column;
-  }
-  
-  .exercise-row button {
-    width: 100%;
-  }
+/* Tip Button */
+.tip-btn {
+  margin-top: 0.5rem;
+  background-color: #ec4899;
+  /* Pink */
+  width: 100%;
+}
 
-  /* Make table scrollable if it overflows */
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  /* Alternatively, stack table cells or hide less important ones if needed. 
-     For now, simple horizontal scroll is often enough for data tables. 
-     Or we can reduce padding. */
-  th, td {
-    padding: .25rem;
-    font-size: 0.9rem;
-  }
+.tip-btn:hover {
+  background-color: #db2777;
+}
+
+/* Auth Styles */
+.hidden {
+  display: none !important;
+}
+
+.link-btn {
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: var(--primary-hover);
+}
+
+#auth-switch-text {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-row h1 {
+  margin-bottom: 0;
+}
+
+.logout-btn {
+  background-color: #94a3b8;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.logout-btn:hover {
+  background-color: #64748b;
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.tab {
+  background: transparent;
+  color: #64748b;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+}
+
+.tab:hover {
+  background-color: #f1f5f9;
+  color: var(--text);
+}
+
+.tab.active {
+  background-color: #e0e7ff;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ANALYTICS VIEW */
+.stats-card {
+  background: #f1f5f9;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.stats-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.stats-card p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.chart-section {
+  margin-bottom: 2rem;
+}
+
+.chart-section h3 {
+  margin-bottom: 0.5rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
 }
