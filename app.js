@@ -16,14 +16,14 @@ import {
 // ======================================
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC5SQpbZ0vQeWDNLZUTzCAZKi5Z4GIqdIg",
-  authDomain: "lifting-log-24a4f.firebaseapp.com",
-  databaseURL: "https://lifting-log-24a4f-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "lifting-log-24a4f",
-  storageBucket: "lifting-log-24a4f.firebasestorage.app",
-  messagingSenderId: "834355525527",
-  appId: "1:834355525527:web:811a8709f2a0013bf6f6d2",
-  measurementId: "G-MCVK2NDV66"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
@@ -89,16 +89,12 @@ const defaultExercises = [
   'Side bend',
   'Bulgarian Split Squat',
   'Overhead Press',
-  'Row',
-  'Glute Bridge Hip Thrust',
+  'Machine Row',
   'Cable crunch',
-  'Barbell press',
-  'Squat',
+  'BarbellSquat',
   'Face pull',
   'Triceps pushdown',
-  'Grip',
   'Biceps curl',
-  'Single leg standing calf',
   'Crunch',
   'Bench press',
   'Dumbbell side raise'
@@ -522,14 +518,14 @@ function updateLastWorkoutStats() {
 function renderChart() {
   const selectedExercise = chartExerciseSelect.value;
 
-  // Filter entries for this exercise
-  // Sort ascending for chart (oldest to newest)
   const exerciseData = entries
     .filter(e => e.exercise === selectedExercise)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const labels = exerciseData.map(e => e.date);
+  // CHANGE 1: Create a parallel array for Reps
   const dataPoints = exerciseData.map(e => e.weight);
+  const repPoints = exerciseData.map(e => e.reps); 
 
   if (chartInstance) {
     chartInstance.destroy();
@@ -545,15 +541,41 @@ function renderChart() {
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
         tension: 0.3,
-        fill: true
+        fill: true,
+        // CHANGE 2: Dynamic Point Radius
+        // Visualizes volume: Big dot = High Reps, Small dot = Low Reps
+        pointRadius: (context) => {
+            const index = context.dataIndex;
+            const reps = repPoints[index];
+            // Base size 3px + 0.5px per rep. 
+            // 5 reps = 5.5px size
+            // 15 reps = 10.5px size
+            return 3 + (reps ? reps * 0.5 : 0); 
+        },
+        pointHoverRadius: (context) => {
+            const index = context.dataIndex;
+            const reps = repPoints[index];
+            return 5 + (reps ? reps * 0.5 : 0);
+        }
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: {
-          beginAtZero: false
+        y: { beginAtZero: false }
+      },
+      // CHANGE 3: Custom Tooltip to show "Weight x Reps"
+      plugins: {
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    const weight = context.parsed.y;
+                    const index = context.dataIndex;
+                    const reps = repPoints[index];
+                    return `${weight}kg × ${reps} reps`;
+                }
+            }
         }
       }
     }
