@@ -8,7 +8,7 @@ import {
   signOut
 } from "firebase/auth";
 import {
-  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, writeBatch, updateDoc
+  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc
 } from "firebase/firestore";
 
 // ======================================
@@ -45,13 +45,16 @@ const authPassword = document.getElementById('auth-password');
 const authSubmit = document.getElementById('auth-submit');
 const authSwitchText = document.getElementById('auth-switch-text');
 const authSwitchBtn = document.getElementById('auth-switch-btn');
-const logoutBtn = document.getElementById('logout-btn');
+const logoutBtn = document.getElementById('settings-logout-btn');
 
-// Tabs & Views
-const tabLog = document.getElementById('tab-log');
-const tabAnalytics = document.getElementById('tab-analytics');
+// Page Views
 const viewLog = document.getElementById('view-log');
 const viewAnalytics = document.getElementById('view-analytics');
+const viewSettings = document.getElementById('view-settings');
+const allPageViews = [viewLog, viewAnalytics, viewSettings];
+
+// Bottom Nav
+const navItems = document.querySelectorAll('.nav-item');
 
 // Analytics Elements
 const lastWorkoutText = document.getElementById('last-workout-text');
@@ -65,7 +68,6 @@ const exerciseSelect = document.getElementById('exercise');
 const addExerciseBtn = document.getElementById('add-exercise');
 const form = document.getElementById('log-form');
 const tbody = document.querySelector('#log-table tbody');
-const clearAllBtn = document.getElementById('clear-all');
 const exportCsvBtn = document.getElementById('export-csv');
 const tipBtn = document.getElementById('tip-btn');
 const addEntryBtn = document.getElementById('add-entry');
@@ -161,6 +163,8 @@ onAuthStateChanged(auth, (user) => {
     authContainer.classList.remove('hidden');
     appContainer.classList.add('hidden');
     authForm.reset();
+    // Reset to Log Entry page
+    switchPage('view-log');
   }
 });
 
@@ -255,27 +259,6 @@ async function deleteWorkout(id) {
   }
 }
 
-// Clear all workouts: delete every document in the "workouts" collection
-async function clearAllWorkouts() {
-  if (!currentUser) return;
-  try {
-    const querySnapshot = await getDocs(getUserCollection());
-    // Batch‐delete or loop through each doc
-    const batch = writeBatch(db);
-    querySnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
-
-    entries = [];
-    render();
-    updateAnalytics();
-  } catch (error) {
-    console.error('Error clearing workouts from Firestore:', error);
-    alert('Failed to clear workouts. Please try again!');
-  }
-}
-
 // =================
 // 4) ON LOAD SETUP
 // =================
@@ -316,24 +299,42 @@ function populateExercises() {
 }
 
 // ================
-// 5) EVENT LISTENERS
+// 5) PAGE SWITCHING (BOTTOM NAV)
 // ================
 
-// Tabs
-tabLog.addEventListener('click', () => {
-  tabLog.classList.add('active');
-  tabAnalytics.classList.remove('active');
-  viewLog.classList.remove('hidden');
-  viewAnalytics.classList.add('hidden');
+function switchPage(pageId) {
+  // Hide all page views
+  allPageViews.forEach(view => view.classList.add('hidden'));
+
+  // Show the target page
+  const target = document.getElementById(pageId);
+  if (target) target.classList.remove('hidden');
+
+  // Update nav active states
+  navItems.forEach(item => {
+    if (item.dataset.page === pageId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+
+  // Refresh analytics when switching to that page
+  if (pageId === 'view-analytics') {
+    updateAnalytics();
+  }
+}
+
+// Nav item click listeners
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    switchPage(item.dataset.page);
+  });
 });
 
-tabAnalytics.addEventListener('click', () => {
-  tabAnalytics.classList.add('active');
-  tabLog.classList.remove('active');
-  viewAnalytics.classList.remove('hidden');
-  viewLog.classList.add('hidden');
-  updateAnalytics(); // Refresh chart when switching tab
-});
+// ================
+// 6) EVENT LISTENERS
+// ================
 
 // Chart Exercise Change
 chartExerciseSelect.addEventListener('change', () => {
@@ -406,17 +407,9 @@ function startEdit(id) {
   addEntryBtn.textContent = 'Update Entry';
   cancelEditBtn.classList.remove('hidden');
 
-  // Switch to Log Tab
-  tabLog.click();
+  // Switch to Log Entry page
+  switchPage('view-log');
 }
-
-// Clear all entries (asks for confirmation, then deletes all Firestore docs)
-clearAllBtn.addEventListener('click', async () => {
-  if (!entries.length) return;
-  if (confirm('Erase all entries?')) {
-    await clearAllWorkouts();
-  }
-});
 
 // Export log to CSV (uses the local `entries[]` array)
 exportCsvBtn.addEventListener('click', () => {
@@ -441,12 +434,12 @@ exportCsvBtn.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-// "Tip Me" button (unchanged)
+// "Tip Me" button
 tipBtn.addEventListener('click', () => {
   window.location.href = 'https://buy.stripe.com/7sI9BB8OY2rh5ZCbII';
 });
 
-// Delete a single entry (clicking the “✕” button in the table)
+// Delete a single entry (clicking the "✕" button in the table)
 tbody.addEventListener('click', async e => {
   const id = e.target.dataset.id;
   if (e.target.matches('.delete')) {
@@ -459,11 +452,11 @@ tbody.addEventListener('click', async e => {
 });
 
 // ================
-// 6) RENDER FUNCTION
+// 7) RENDER FUNCTION
 // ================
 function render() {
   tbody.innerHTML = entries.map(entry => {
-    const id = entry._id || entry.id; // If you ever switch to MongoDB, it’ll also work
+    const id = entry._id || entry.id; // If you ever switch to MongoDB, it'll also work
     return `
       <tr>
         <td>${entry.date}</td>
@@ -481,7 +474,7 @@ function render() {
 }
 
 // ================
-// 7) ANALYTICS FUNCTIONS
+// 8) ANALYTICS FUNCTIONS
 // ================
 
 function updateAnalytics() {

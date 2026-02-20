@@ -10,3 +10,5 @@ dist/
 # Sensitive files
 stripe_backup_code.txt
 .env
+legacy.csv
+legacy.txt
