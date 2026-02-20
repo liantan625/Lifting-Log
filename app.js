@@ -523,9 +523,8 @@ function renderChart() {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const labels = exerciseData.map(e => e.date);
-  // CHANGE 1: Create a parallel array for Reps
-  const dataPoints = exerciseData.map(e => e.weight);
-  const repPoints = exerciseData.map(e => e.reps); 
+  const weightPoints = exerciseData.map(e => e.weight);
+  const volumePoints = exerciseData.map(e => e.weight * e.reps);
 
   if (chartInstance) {
     chartInstance.destroy();
@@ -534,48 +533,69 @@ function renderChart() {
   chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
-      datasets: [{
-        label: `${selectedExercise} Weight (kg)`,
-        data: dataPoints,
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        tension: 0.3,
-        fill: true,
-        // CHANGE 2: Dynamic Point Radius
-        // Visualizes volume: Big dot = High Reps, Small dot = Low Reps
-        pointRadius: (context) => {
-            const index = context.dataIndex;
-            const reps = repPoints[index];
-            // Base size 3px + 0.5px per rep. 
-            // 5 reps = 5.5px size
-            // 15 reps = 10.5px size
-            return 3 + (reps ? reps * 0.5 : 0); 
+      labels,
+      datasets: [
+        {
+          label: `${selectedExercise} Weight (kg)`,
+          data: weightPoints,
+          yAxisID: 'yWeight',
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99,102,241,0.1)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
         },
-        pointHoverRadius: (context) => {
-            const index = context.dataIndex;
-            const reps = repPoints[index];
-            return 5 + (reps ? reps * 0.5 : 0);
+        {
+          label: `${selectedExercise} Volume (kg × reps)`,
+          data: volumePoints,
+          yAxisID: 'yVolume',
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249,115,22,0.08)',
+          tension: 0.3,
+          fill: false,
+          borderDash: [5, 4],
+          pointRadius: 4,
+          pointHoverRadius: 6,
         }
-      }]
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: false }
+      interaction: {
+        mode: 'index',
+        intersect: false,
       },
-      // CHANGE 3: Custom Tooltip to show "Weight x Reps"
+      scales: {
+        yWeight: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: false,
+          title: { display: true, text: 'Weight (kg)' },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        yVolume: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: false,
+          title: { display: true, text: 'Volume (kg × reps)' },
+          grid: { drawOnChartArea: false }, // no double gridlines
+        },
+      },
       plugins: {
+        legend: { position: 'top' },
         tooltip: {
-            callbacks: {
-                label: function(context) {
-                    const weight = context.parsed.y;
-                    const index = context.dataIndex;
-                    const reps = repPoints[index];
-                    return `${weight}kg × ${reps} reps`;
-                }
+          callbacks: {
+            label: (context) => {
+              const val = context.parsed.y;
+              if (context.dataset.yAxisID === 'yWeight') {
+                const reps = exerciseData[context.dataIndex]?.reps;
+                return `Weight: ${val} kg  (${reps} reps)`;
+              }
+              return `Volume: ${val} kg×reps`;
             }
+          }
         }
       }
     }
