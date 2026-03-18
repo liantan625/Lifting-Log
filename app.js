@@ -8,7 +8,7 @@ import {
   signOut
 } from "firebase/auth";
 import {
-  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc
+  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, setDoc
 } from "firebase/firestore";
 
 // ======================================
@@ -73,14 +73,13 @@ const tipBtn = document.getElementById('tip-btn');
 const addEntryBtn = document.getElementById('add-entry');
 const cancelEditBtn = document.getElementById('cancel-edit');
 
-const EX_KEY = 'myLiftExercises';
-// COLLECTION_NAME will be dynamic based on user
+const EX_KEY = 'myLiftExercises'; // kept only for one-time migration read
 let currentUser = null;
 let editingId = null; // Track which ID is being edited
 
 // --- INITIAL DATA ---
 let entries = [];
-let exercises = JSON.parse(localStorage.getItem(EX_KEY) || '[]');
+let exercises = [];
 
 // Default exercises
 const defaultExercises = [
@@ -154,16 +153,17 @@ onAuthStateChanged(auth, (user) => {
     currentUser = user;
     authContainer.classList.add('hidden');
     appContainer.classList.remove('hidden');
-    fetchWorkouts(); // Load data for this user
+    fetchWorkouts(); // Loads workouts AND exercises (with backfill)
   } else {
     // User is signed out
     currentUser = null;
-    entries = []; // Clear local data
+    entries = [];
+    exercises = defaultExercises.slice();
+    populateExercises();
     render();
     authContainer.classList.remove('hidden');
     appContainer.classList.add('hidden');
     authForm.reset();
-    // Reset to Log Entry page
     switchPage('view-log');
   }
 });
@@ -178,20 +178,72 @@ function getUserCollection() {
   return collection(db, `users/${currentUser.uid}/workouts`);
 }
 
-// Fetch all workouts from Firestore
+function getUserExercisesCollection() {
+  if (!currentUser) throw new Error("No user logged in");
+  return collection(db, `users/${currentUser.uid}/exercises`);
+}
+
+// Save a single exercise name to Firestore (uses name as doc ID to avoid duplicates)
+async function saveExerciseToFirestore(name) {
+  if (!currentUser) return;
+  try {
+    const docRef = doc(db, `users/${currentUser.uid}/exercises`, encodeURIComponent(name));
+    await setDoc(docRef, { name }, { merge: true });
+  } catch (error) {
+    console.error('Error saving exercise to Firestore:', error);
+  }
+}
+
+// Fetch exercises from Firestore, backfill from localStorage + workout entries, then sync
+async function fetchExercises(workoutDerivedNames = []) {
+  if (!currentUser) return;
+  try {
+    const snapshot = await getDocs(getUserExercisesCollection());
+    const firestoreNames = snapshot.docs.map(d => d.data().name).filter(Boolean);
+
+    // One-time migration: read any exercises stored in localStorage
+    const localNames = JSON.parse(localStorage.getItem(EX_KEY) || '[]');
+
+    // Merge all sources: defaults + firestore + localStorage + workout-derived
+    const allNames = new Set([
+      ...defaultExercises,
+      ...firestoreNames,
+      ...localNames,
+      ...workoutDerivedNames
+    ]);
+
+    exercises = [...allNames].sort();
+    populateExercises();
+
+    // Write any names not yet in Firestore (backfill)
+    const toWrite = [...allNames].filter(n => !firestoreNames.includes(n));
+    await Promise.all(toWrite.map(n => saveExerciseToFirestore(n)));
+
+    // Clear localStorage after successful migration
+    if (localNames.length > 0) {
+      localStorage.removeItem(EX_KEY);
+    }
+  } catch (error) {
+    console.error('Error fetching exercises from Firestore:', error);
+  }
+}
+
+// Fetch all workouts from Firestore, then fetch/backfill exercises
 async function fetchWorkouts() {
   if (!currentUser) return;
   try {
     const querySnapshot = await getDocs(getUserCollection());
-    // Map each document into your `entries` array, including its Firestore ID as `_id`
     entries = querySnapshot.docs.map(doc => ({
       _id: doc.id,
       ...doc.data()
     }));
-    // Sort by date descending (optional but good)
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
     render();
-    updateAnalytics(); // Update stats/charts when data loads
+    updateAnalytics();
+
+    // Extract unique exercise names from all existing workout entries (backfill source)
+    const workoutDerivedNames = [...new Set(entries.map(e => e.exercise).filter(Boolean))];
+    await fetchExercises(workoutDerivedNames);
   } catch (error) {
     console.error('Error fetching workouts from Firestore:', error);
     alert('Failed to load workouts.');
@@ -263,29 +315,14 @@ async function deleteWorkout(id) {
 // 4) ON LOAD SETUP
 // =================
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Set date to today
+  // Set date to today
   dateInput.value = new Date().toISOString().slice(0, 10);
 
-  // 2. Initialize exercises list (still using localStorage for exercises)
-  if (!exercises.length) {
-    exercises = defaultExercises.slice();
-    localStorage.setItem(EX_KEY, JSON.stringify(exercises));
-  } else {
-    // Merge new default exercises if they don't exist
-    let changed = false;
-    defaultExercises.forEach(ex => {
-      if (!exercises.includes(ex)) {
-        exercises.push(ex);
-        changed = true;
-      }
-    });
-    if (changed) {
-      localStorage.setItem(EX_KEY, JSON.stringify(exercises));
-    }
-  }
+  // Populate dropdowns with defaults as a placeholder while Firestore loads
+  exercises = defaultExercises.slice().sort();
   populateExercises();
 
-  // 3. Load workouts from Firestore -> Moved to onAuthStateChanged
+  // Workouts + exercises are fully loaded in onAuthStateChanged → fetchWorkouts()
 });
 
 // Populate the <select> with exercises
@@ -341,14 +378,15 @@ chartExerciseSelect.addEventListener('change', () => {
   renderChart();
 });
 
-// Add a new custom exercise (still using localStorage)
-addExerciseBtn.addEventListener('click', () => {
+// Add a new custom exercise — saved to Firestore
+addExerciseBtn.addEventListener('click', async () => {
   const name = prompt('Enter new exercise name:')?.trim();
   if (name && !exercises.includes(name)) {
     exercises.push(name);
-    localStorage.setItem(EX_KEY, JSON.stringify(exercises));
+    exercises.sort();
     populateExercises();
     exerciseSelect.value = name;
+    await saveExerciseToFirestore(name);
   }
 });
 
