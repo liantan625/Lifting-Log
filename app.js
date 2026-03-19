@@ -555,7 +555,7 @@ function renderChart() {
 
   const labels = exerciseData.map(e => e.date);
   const weightPoints = exerciseData.map(e => e.weight);
-  const volumePoints = exerciseData.map(e => e.weight * e.reps);
+  const repsPoints = exerciseData.map(e => e.reps);
 
   if (chartInstance) {
     chartInstance.destroy();
@@ -578,9 +578,9 @@ function renderChart() {
           pointHoverRadius: 6,
         },
         {
-          label: `${selectedExercise} Volume (kg × reps)`,
-          data: volumePoints,
-          yAxisID: 'yVolume',
+          label: `${selectedExercise} Reps`,
+          data: repsPoints,
+          yAxisID: 'yReps',
           borderColor: '#f97316',
           backgroundColor: 'rgba(249,115,22,0.08)',
           tension: 0.3,
@@ -606,11 +606,11 @@ function renderChart() {
           title: { display: true, text: 'Weight (kg)' },
           grid: { color: 'rgba(0,0,0,0.05)' },
         },
-        yVolume: {
+        yReps: {
           type: 'linear',
           position: 'right',
-          beginAtZero: false,
-          title: { display: true, text: 'Volume (kg × reps)' },
+          beginAtZero: true,
+          title: { display: true, text: 'Reps' },
           grid: { drawOnChartArea: false }, // no double gridlines
         },
       },
@@ -621,10 +621,9 @@ function renderChart() {
             label: (context) => {
               const val = context.parsed.y;
               if (context.dataset.yAxisID === 'yWeight') {
-                const reps = exerciseData[context.dataIndex]?.reps;
-                return `Weight: ${val} kg  (${reps} reps)`;
+                return `Weight: ${val} kg`;
               }
-              return `Volume: ${val} kg×reps`;
+              return `Reps: ${val}`;
             }
           }
         }
